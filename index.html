@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DocEditor Pro - Advanced Document Editor</title>
+    
+    <!-- External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #1a73e8;
+            --hover-color: #e8f0fe;
+            --border-color: #dadce0;
+            --text-color: #202124;
+            --bg-color: #f8f9fa;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #1a73e8, #4285f4);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .doc-title {
+            font-size: 18px;
+            border: none;
+            outline: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            transition: background 0.2s;
+            min-width: 200px;
+        }
+
+        .doc-title:hover {
+            background: var(--hover-color);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1557b0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .btn-secondary {
+            background: white;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--hover-color);
+        }
+
+        /* Toolbar */
+        .toolbar {
+            background: white;
+            border-bottom: 1px solid var(--border-color);
+            padding: 8px 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .toolbar-group {
+            display: flex;
+            gap: 4px;
+            padding: 4px;
+            border-right: 1px solid var(--border-color);
+            padding-right: 12px;
+        }
+
+        .toolbar-group:last-child {
+            border-right: none;
+        }
+
+        .tool-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.2s;
+            color: var(--text-color);
+        }
+
+        .tool-btn:hover {
+            background: var(--hover-color);
+        }
+
+        .tool-btn.active {
+            background: var(--hover-color);
+            color: var(--primary-color);
+        }
+
+        select.tool-select {
+            padding: 6px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            outline: none;
+            cursor: pointer;
+            background: white;
+        }
+
+        select.tool-select:hover {
+            background: var(--hover-color);
+        }
+
+        input[type="color"] {
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background: none;
+        }
+
+        /* Editor Container */
+        .editor-container {
+            max-width: 850px;
+            margin: 40px auto;
+            background: white;
+            min-height: 1056px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 96px;
+        }
+
+        #editor {
+            min-height: 864px;
+            outline: none;
+            font-size: 12pt;
+            line-height: 1.6;
+            color: var(--text-color);
+        }
+
+        /* Status Bar */
+        .status-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid var(--border-color);
+            padding: 8px 20px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #5f6368;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .input-group {
+            margin-bottom: 16px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            outline: none;
+            font-size: 14px;
+        }
+
+        .input-group input:focus,
+        .input-group select:focus {
+            border-color: var(--primary-color);
+        }
+
+        /* Table Styles */
+        #editor table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 16px 0;
+        }
+
+        #editor table td,
+        #editor table th {
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            min-width: 100px;
+        }
+
+        #editor table th {
+            background: var(--bg-color);
+            font-weight: 600;
+        }
+
+        /* Image Styles */
+        #editor img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 16px 0;
+        }
+
+        /* Link Styles */
+        #editor a {
+            color: var(--primary-color);
+            text-decoration: underline;
+        }
+
+        /* Dropdown Menu */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: white;
+            min-width: 220px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-radius: 4px;
+            overflow: hidden;
+            z-index: 1001;
+            top: 100%;
+            margin-top: 4px;
+        }
+
+        .dropdown-content.active {
+            display: block;
+        }
+
+        .dropdown-content button {
+            width: 100%;
+            padding: 12px 16px;
+            border: none;
+            background: white;
+            text-align: left;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        .dropdown-content button:hover {
+            background: var(--hover-color);
+        }
+
+        /* File input hidden */
+        #fileInput {
+            display: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .editor-container {
+                margin: 20px;
+                padding: 40px 20px;
+            }
+
+            .toolbar {
+                padding: 8px 10px;
+            }
+
+            .header {
+                padding: 10px;
+            }
+
+            .doc-title {
+                min-width: 150px;
+                font-size: 16px;
+            }
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: white;
+            padding: 16px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: none;
+            align-items: center;
+            gap: 12px;
+            z-index: 9999;
+            border-left: 4px solid #34a853;
+            min-width: 250px;
+        }
+
+        .notification.active {
+            display: flex;
+            animation: slideIn 0.3s ease;
+        }
+
+        .notification.error {
+            border-left-color: #ea4335;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .saved-files-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .saved-file-item {
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .saved-file-item:hover {
+            background: var(--hover-color);
+            border-color: var(--primary-color);
+        }
+
+        .file-info {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .file-date {
+            font-size: 12px;
+            color: #5f6368;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .file-actions button {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="logo">
+            <div class="logo-icon">📝</div>
+            <input type="text" class="doc-title" id="docTitle" value="Untitled Document" placeholder="Document title">
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-secondary" onclick="saveToFile()">
+                💾 Save to File
+            </button>
+            <button class="btn btn-secondary" onclick="document.getElementById('fileInput').click()">
+                📂 Load from File
+            </button>
+            <button class="btn btn-secondary" onclick="openSavedFiles()">
+                📚 My Documents
+            </button>
+            <div class="dropdown">
+                <button class="btn btn-primary" onclick="toggleExportMenu(event)">
+                    📥 Export
+                </button>
+                <div class="dropdown-content" id="exportMenu">
+                    <button onclick="exportAs('txt')">📄 Export as .txt</button>
+                    <button onclick="exportAs('html')">🌐 Export as .html</button>
+                    <button onclick="exportAs('pdf')">📕 Export as .pdf</button>
+                    <button onclick="exportAs('docx')">📘 Export as .docx</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden File Input -->
+    <input type="file" id="fileInput" accept=".txt,.html,.doc" onchange="loadFromFile(event)">
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <div class="toolbar-group">
+            <button class="tool-btn" onclick="document.execCommand('undo')" title="Undo">↶</button>
+            <button class="tool-btn" onclick="document.execCommand('redo')" title="Redo">↷</button>
+        </div>
+
+        <div class="toolbar-group">
+            <select class="tool-select" onchange="document.execCommand('fontName', false, this.value)">
+                <option value="Arial">Arial</option>
+                <option value="Georgia">Georgia</option>
+                <option value="Times New Roman">Times New Roman</option>
+                <option value="Courier New">Courier New</option>
+                <option value="Verdana">Verdana</option>
+                <option value="Comic Sans MS">Comic Sans MS</option>
+            </select>
+            
+            <select class="tool-select" onchange="document.execCommand('fontSize', false, this.value)">
+                <option value="1">8pt</option>
+                <option value="2">10pt</option>
+                <option value="3" selected>12pt</option>
+                <option value="4">14pt</option>
+                <option value="5">18pt</option>
+                <option value="6">24pt</option>
+                <option value="7">36pt</option>
+            </select>
+        </div>
+
+        <div class="toolbar-group">
+            <button class="tool-btn" onclick="formatDoc('bold')" title="Bold"><b>B</b></button>
+            <button class="tool-btn" onclick="formatDoc('italic')" title="Italic"><i>I</i></button>
+            <button class="tool-btn" onclick="formatDoc('underline')" title="Underline"><u>U</u></button>
+            <button class="tool-btn" onclick="formatDoc('strikeThrough')" title="Strikethrough"><s>S</s></button>
+        </div>
+
+        <div class="toolbar-group">
+            <input type="color" id="textColor" title="Text Color" onchange="document.execCommand('foreColor', false, this.value)">
+            <input type="color" id="bgColor" title="Highlight" onchange="document.execCommand('hiliteColor', false, this.value)">
+        </div>
+
+        <div class="toolbar-group">
+            <button class="tool-btn" onclick="formatDoc('justifyLeft')" title="Align Left">≡</button>
+            <button class="tool-btn" onclick="formatDoc('justifyCenter')" title="Align Center">≣</button>
+            <button class="tool-btn" onclick="formatDoc('justifyRight')" title="Align Right">⋮</button>
+            <button class="tool-btn" onclick="formatDoc('justifyFull')" title="Justify">▭</button>
+        </div>
+
+        <div class="toolbar-group">
+            <button class="tool-btn" onclick="formatDoc('insertOrderedList')" title="Numbered List">1.</button>
+            <button class="tool-btn" onclick="formatDoc('insertUnorderedList')" title="Bullet List">•</button>
+        </div>
+
+        <div class="toolbar-group">
+            <button class="tool-btn" onclick="insertLink()" title="Insert Link">🔗</button>
+            <button class="tool-btn" onclick="insertImage()" title="Insert Image">🖼️</button>
+            <button class="tool-btn" onclick="insertTable()" title="Insert Table">⊞</button>
+        </div>
+
+        <div class="toolbar-group">
+            <button class="tool-btn" onclick="formatDoc('removeFormat')" title="Clear Formatting">🧹</button>
+        </div>
+    </div>
+
+    <!-- Editor -->
+    <div class="editor-container">
+        <div id="editor" contenteditable="true" spellcheck="true">
+            <h1>Welcome to DocEditor Pro</h1>
+            <p>Start typing your document here...</p>
+            <p>This is a fully-featured document editor with:</p>
+            <ul>
+                <li>Rich text formatting</li>
+                <li>Multiple font options</li>
+                <li>Images and tables</li>
+                <li>Save to file system</li>
+                <li>Load from file system</li>
+                <li>Export to TXT, HTML, PDF, and DOCX</li>
+                <li>Auto-save to browser storage</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <div>Word Count: <span id="wordCount">0</span> | Characters: <span id="charCount">0</span></div>
+        <div>Auto-saved: <span id="saveTime">Never</span></div>
+    </div>
+
+    <!-- Notification -->
+    <div class="notification" id="notification">
+        <span id="notificationText">Document saved successfully!</span>
+    </div>
+
+    <!-- Link Modal -->
+    <div class="modal" id="linkModal">
+        <div class="modal-content">
+            <div class="modal-header">Insert Link</div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label>Display Text:</label>
+                    <input type="text" id="linkText" placeholder="Enter text to display">
+                </div>
+                <div class="input-group">
+                    <label>URL:</label>
+                    <input type="url" id="linkUrl" placeholder="https://example.com">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('linkModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmLink()">Insert</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Modal -->
+    <div class="modal" id="imageModal">
+        <div class="modal-content">
+            <div class="modal-header">Insert Image</div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label>Image URL:</label>
+                    <input type="url" id="imageUrl" placeholder="https://example.com/image.jpg">
+                </div>
+                <div class="input-group">
+                    <label>Or Upload Image:</label>
+                    <input type="file" id="imageFile" accept="image/*">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('imageModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmImage()">Insert</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table Modal -->
+    <div class="modal" id="tableModal">
+        <div class="modal-content">
+            <div class="modal-header">Insert Table</div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label>Rows:</label>
+                    <input type="number" id="tableRows" value="3" min="1" max="20">
+                </div>
+                <div class="input-group">
+                    <label>Columns:</label>
+                    <input type="number" id="tableCols" value="3" min="1" max="10">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('tableModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmTable()">Insert</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Saved Files Modal -->
+    <div class="modal" id="savedFilesModal">
+        <div class="modal-content">
+            <div class="modal-header">My Documents</div>
+            <div class="modal-body">
+                <div class="saved-files-list" id="savedFilesList">
+                    <!-- Files will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('savedFilesModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize
+        const editor = document.getElementById('editor');
+        const docTitle = document.getElementById('docTitle');
+        
+        // Auto-save every 30 seconds
+        setInterval(autoSave, 30000);
+
+        // Update word count
+        editor.addEventListener('input', updateWordCount);
+        updateWordCount();
+
+        // Format Document
+        function formatDoc(cmd, value = null) {
+            document.execCommand(cmd, false, value);
+            editor.focus();
+        }
+
+        // Insert Link
+        function insertLink() {
+            document.getElementById('linkModal').classList.add('active');
+            const selection = window.getSelection().toString();
+            if (selection) {
+                document.getElementById('linkText').value = selection;
+            }
+        }
+
+        function confirmLink() {
+            const text = document.getElementById('linkText').value;
+            const url = document.getElementById('linkUrl').value;
+            
+            if (url) {
+                const link = `<a href="${url}" target="_blank">${text || url}</a>`;
+                document.execCommand('insertHTML', false, link);
+            }
+            
+            closeModal('linkModal');
+            document.getElementById('linkText').value = '';
+            document.getElementById('linkUrl').value = '';
+        }
+
+        // Insert Image
+        function insertImage() {
+            document.getElementById('imageModal').classList.add('active');
+        }
+
+        function confirmImage() {
+            const url = document.getElementById('imageUrl').value;
+            const file = document.getElementById('imageFile').files[0];
+            
+            if (url) {
+                const img = `<img src="${url}" alt="Image" style="max-width: 100%;">`;
+                document.execCommand('insertHTML', false, img);
+                closeModal('imageModal');
+                document.getElementById('imageUrl').value = '';
+            } else if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = `<img src="${e.target.result}" alt="Image" style="max-width: 100%;">`;
+                    document.execCommand('insertHTML', false, img);
+                    closeModal('imageModal');
+                    document.getElementById('imageFile').value = '';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Insert Table
+        function insertTable() {
+            document.getElementById('tableModal').classList.add('active');
+        }
+
+        function confirmTable() {
+            const rows = parseInt(document.getElementById('tableRows').value);
+            const cols = parseInt(document.getElementById('tableCols').value);
+            
+            let table = '<table><tbody>';
+            
+            for (let i = 0; i < rows; i++) {
+                table += '<tr>';
+                for (let j = 0; j < cols; j++) {
+                    if (i === 0) {
+                        table += '<th>Header</th>';
+                    } else {
+                        table += '<td>Cell</td>';
+                    }
+                }
+                table += '</tr>';
+            }
+            
+            table += '</tbody></table><p><br></p>';
+            document.execCommand('insertHTML', false, table);
+            closeModal('tableModal');
+        }
+
+        // Modal Functions
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // Close modal on outside click
+        window.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                e.target.classList.remove('active');
+            }
+        });
+
+        // Export Menu Toggle
+        function toggleExportMenu(event) {
+            event.stopPropagation();
+            const menu = document.getElementById('exportMenu');
+            menu.classList.toggle('active');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.dropdown')) {
+                const dropdowns = document.getElementsByClassName('dropdown-content');
+                for (let dropdown of dropdowns) {
+                    dropdown.classList.remove('active');
+                }
+            }
+        });
+
+        // Save to File System
+        function saveToFile() {
+            const title = docTitle.value || 'Untitled';
+            const content = editor.innerHTML;
+            
+            const data = {
+                title: title,
+                content: content,
+                timestamp: new Date().toISOString()
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            downloadFile(blob, `${title}.doc`);
+            
+            // Also save to localStorage
+            saveToLocalStorage(data);
+            
+            showNotification('Document saved to file!');
+        }
+
+        // Load from File System
+        function loadFromFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    const content = e.target.result;
+                    
+                    // Try to parse as JSON first
+                    try {
+                        const data = JSON.parse(content);
+                        docTitle.value = data.title || 'Untitled';
+                        editor.innerHTML = data.content || content;
+                    } catch {
+                        // If not JSON, treat as plain text or HTML
+                        if (content.includes('<html') || content.includes('<!DOCTYPE')) {
+                            // Extract body content from HTML
+                            const parser = new DOMParser();
+                            const doc = parser.parseFromString(content, 'text/html');
+                            const body = doc.body;
+                            editor.innerHTML = body.innerHTML;
+                        } else {
+                            editor.innerHTML = `<p>${content.replace(/\n/g, '</p><p>')}</p>`;
+                        }
+                    }
+                    
+                    updateWordCount();
+                    showNotification('Document loaded successfully!');
+                } catch (error) {
+                    showNotification('Error loading file!', true);
+                    console.error(error);
+                }
+            };
+            
+            reader.readAsText(file);
+            event.target.value = ''; // Reset input
+        }
+
+        // Save to LocalStorage
+        function saveToLocalStorage(data) {
+            try {
+                // Get existing documents
+                let documents = JSON.parse(localStorage.getItem('documents') || '[]');
+                
+                // Add or update document
+                const existingIndex = documents.findIndex(doc => doc.title === data.title);
+                if (existingIndex >= 0) {
+                    documents[existingIndex] = data;
+                } else {
+                    documents.push(data);
+                }
+                
+                // Keep only last 50 documents
+                if (documents.length > 50) {
+                    documents = documents.slice(-50);
+                }
+                
+                localStorage.setItem('documents', JSON.stringify(documents));
+            } catch (error) {
+                console.error('Error saving to localStorage:', error);
+            }
+        }
+
+        // Auto Save
+        function autoSave() {
+            const data = {
+                title: docTitle.value,
+                content: editor.innerHTML,
+                timestamp: new Date().toISOString()
+            };
+            
+            saveToLocalStorage(data);
+            localStorage.setItem('lastDocument', JSON.stringify(data));
+            updateSaveTime();
+        }
+
+        // Open Saved Files
+        function openSavedFiles() {
+            const documents = JSON.parse(localStorage.getItem('documents') || '[]');
+            const listContainer = document.getElementById('savedFilesList');
+            
+            if (documents.length === 0) {
+                listContainer.innerHTML = '<p style="text-align: center; color: #5f6368; padding: 20px;">No saved documents found.</p>';
+            } else {
+                listContainer.innerHTML = documents.reverse().map((doc, index) => `
+                    <div class="saved-file-item">
+                        <div class="file-info">
+                            <div class="file-name">${doc.title}</div>
+                            <div class="file-date">${new Date(doc.timestamp).toLocaleString()}</div>
+                        </div>
+                        <div class="file-actions">
+                            <button class="btn btn-primary" onclick="loadDocument(${documents.length - 1 - index})">Open</button>
+                            <button class="btn btn-secondary" onclick="deleteDocument(${documents.length - 1 - index})">Delete</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            document.getElementById('savedFilesModal').classList.add('active');
+        }
+
+        // Load Document from localStorage
+        function loadDocument(index) {
+            const documents = JSON.parse(localStorage.getItem('documents') || '[]');
+            const doc = documents[index];
+            
+            if (doc) {
+                docTitle.value = doc.title;
+                editor.innerHTML = doc.content;
+                updateWordCount();
+                closeModal('savedFilesModal');
+                showNotification('Document loaded!');
+            }
+        }
+
+        // Delete Document from localStorage
+        function deleteDocument(index) {
+            if (confirm('Are you sure you want to delete this document?')) {
+                let documents = JSON.parse(localStorage.getItem('documents') || '[]');
+                documents.splice(index, 1);
+                localStorage.setItem('documents', JSON.stringify(documents));
+                openSavedFiles(); // Refresh list
+                showNotification('Document deleted!');
+            }
+        }
+
+        // Export Functions
+        function exportAs(format) {
+            const title = docTitle.value || 'Untitled';
+            
+            try {
+                switch(format) {
+                    case 'txt':
+                        exportTXT(title);
+                        break;
+                    case 'html':
+                        exportHTML(title);
+                        break;
+                    case 'pdf':
+                        exportPDF(title);
+                        break;
+                    case 'docx':
+                        exportDOCX(title);
+                        break;
+                }
+            } catch (error) {
+                showNotification('Export error: ' + error.message, true);
+                console.error(error);
+            }
+            
+            document.getElementById('exportMenu').classList.remove('active');
+        }
+
+        // Export as TXT
+        function exportTXT(title) {
+            const text = editor.innerText;
+            const blob = new Blob([text], { type: 'text/plain' });
+            downloadFile(blob, `${title}.txt`);
+            showNotification('Exported as TXT!');
+        }
+
+        // Export as HTML
+        function exportHTML(title) {
+            const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${title}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 850px;
+            margin: 40px auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 16px 0;
+        }
+        table td, table th {
+            border: 1px solid #dadce0;
+            padding: 8px;
+        }
+        table th {
+            background: #f8f9fa;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+${editor.innerHTML}
+</body>
+</html>`;
+            
+            const blob = new Blob([html], { type: 'text/html' });
+            downloadFile(blob, `${title}.html`);
+            showNotification('Exported as HTML!');
+        }
+
+        // Export as PDF
+        async function exportPDF(title) {
+            try {
+                showNotification('Generating PDF... Please wait');
+                
+                const { jsPDF } = window.jspdf;
+                
+                // Create a clone of the editor for rendering
+                const clone = editor.cloneNode(true);
+                clone.style.width = '210mm'; // A4 width
+                clone.style.padding = '20mm';
+                clone.style.background = 'white';
+                clone.style.position = 'absolute';
+                clone.style.left = '-9999px';
+                document.body.appendChild(clone);
+                
+                // Use html2canvas to render the content
+                const canvas = await html2canvas(clone, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false,
+                    windowWidth: 794, // A4 width in pixels at 96 DPI
+                });
+                
+                document.body.removeChild(clone);
+                
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                
+                const imgWidth = 210; // A4 width in mm
+                const pageHeight = 297; // A4 height in mm
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
+                
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+                
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+                
+                pdf.save(`${title}.pdf`);
+                showNotification('Exported as PDF!');
+            } catch (error) {
+                showNotification('PDF export failed: ' + error.message, true);
+                console.error(error);
+            }
+        }
+
+        // Export as DOCX (Simple HTML-based approach)
+        function exportDOCX(title) {
+            const header = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head><meta charset='utf-8'><title>${title}</title></head><body>`;
+            const footer = '</body></html>';
+            const sourceHTML = header + editor.innerHTML + footer;
+            
+            const blob = new Blob(['\ufeff', sourceHTML], {
+                type: 'application/msword'
+            });
+            
+            downloadFile(blob, `${title}.doc`);
+            showNotification('Exported as DOCX!');
+        }
+
+        // Download File Helper
+        function downloadFile(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Update Word Count
+        function updateWordCount() {
+            const text = editor.innerText.trim();
+            const words = text.split(/\s+/).filter(word => word.length > 0);
+            const chars = text.length;
+            
+            document.getElementById('wordCount').textContent = words.length;
+            document.getElementById('charCount').textContent = chars;
+        }
+
+        // Update Save Time
+        function updateSaveTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString();
+            document.getElementById('saveTime').textContent = timeString;
+        }
+
+        // Show Notification
+        function showNotification(message, isError = false) {
+            const notification = document.getElementById('notification');
+            const text = document.getElementById('notificationText');
+            
+            text.textContent = message;
+            notification.classList.toggle('error', isError);
+            notification.classList.add('active');
+            
+            setTimeout(() => {
+                notification.classList.remove('active');
+            }, 3000);
+        }
+
+        // Keyboard Shortcuts
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                saveToFile();
+            }
+            
+            if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+                e.preventDefault();
+                formatDoc('bold');
+            }
+            
+            if ((e.ctrlKey || e.metaKey) && e.key === 'i') {
+                e.preventDefault();
+                formatDoc('italic');
+            }
+            
+            if ((e.ctrlKey || e.metaKey) && e.key === 'u') {
+                e.preventDefault();
+                formatDoc('underline');
+            }
+        });
+
+        // Load last document on page load
+        window.addEventListener('load', () => {
+            const lastDoc = localStorage.getItem('lastDocument');
+            if (lastDoc) {
+                try {
+                    const data = JSON.parse(lastDoc);
+                    const lastModified = new Date(data.timestamp);
+                    const now = new Date();
+                    const diffMinutes = (now - lastModified) / 1000 / 60;
+                    
+                    if (diffMinutes < 1440) { // 24 hours
+                        docTitle.value = data.title;
+                        editor.innerHTML = data.content;
+                        updateWordCount();
+                    }
+                } catch (error) {
+                    console.error('Error loading last document:', error);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
